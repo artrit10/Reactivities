@@ -1,17 +1,14 @@
 import { Button, Form, Segment } from "semantic-ui-react"
-import { Activity } from "../../../app/models/activity"
 import { ChangeEvent, useState } from "react"
+import { useStore } from "../../../app/stores/store";
+import { observer } from "mobx-react-lite";
 
-interface Props {
-    closeForm: () => void
-    activity: Activity | undefined
-    createEdit: (activity: Activity) => void
-    submitting: boolean;
-}
 
-const ActivityForm = ({ closeForm, activity: selectedActivity, createEdit, submitting }: Props) => {
+const ActivityForm = () => {
 
-    const initialState = selectedActivity ?? {
+    const { activityStore } = useStore()
+
+    const initialState = activityStore.selectedActivity ?? {
         id: '',
         title: '',
         category: '',
@@ -24,7 +21,7 @@ const ActivityForm = ({ closeForm, activity: selectedActivity, createEdit, submi
     const [activity, setActivity] = useState(initialState)
 
     const handleSubmit = () => {
-        createEdit(activity)
+        activity.id ? activityStore.updateActivity(activity) : activityStore.createActivity(activity)
     }
 
     const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -40,11 +37,11 @@ const ActivityForm = ({ closeForm, activity: selectedActivity, createEdit, submi
                 <Form.Input type="date" placeholder='Date' value={activity.date} name='date' onChange={handleInputChange}></Form.Input>
                 <Form.Input placeholder='City' value={activity.city} name='city' onChange={handleInputChange}></Form.Input>
                 <Form.Input placeholder='Venue' value={activity.venue} name='venue' onChange={handleInputChange}></Form.Input>
-                <Button loading={submitting} floated="right" positive type="submit" content='Submit'></Button>
-                <Button onClick={closeForm} floated="right" type="button" content='Cancel'></Button>
+                <Button loading={activityStore.loading} floated="right" positive type="submit" content='Submit'></Button>
+                <Button onClick={activityStore.closeForm} floated="right" type="button" content='Cancel'></Button>
             </Form>
         </Segment>
     )
 }
 
-export default ActivityForm;
+export default observer(ActivityForm);
