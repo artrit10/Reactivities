@@ -1,7 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { Activity } from "../models/activity";
 import agent from "../api/agent";
-import { v4 as uuid } from 'uuid'
 
 export default class ActivityStore {
     activities: Activity[] = [];
@@ -20,8 +19,7 @@ export default class ActivityStore {
             runInAction(() => {
                 this.activities = [];
                 activities.forEach(activity => {
-                    activity.date = activity.date.split('T')[0];
-                    this.activities.push(activity);
+                    this.setActivity(activity)
                 })
                 this.loadingInitial = false;
             })
@@ -34,26 +32,38 @@ export default class ActivityStore {
         }
     }
 
-    selectActivity = (id: string) => {
-        this.selectedActivity = this.activities.find(x => x.id === id)
+    private setActivity = (activity: Activity) => {
+        activity.date = activity.date.split('T')[0];
+        this.activities.push(activity);
     }
 
-    cancelActivity = () => {
-        this.selectedActivity = undefined
+    loadActivity = async (id: string) => {
+        let activity = this.getActivity(id)
+        if (activity) {
+            this.selectedActivity = activity;
+            return activity;
+        }
+        else {
+            this.loadingInitial = true;
+            try {
+                activity = await agent.Activities.details(id);
+                this.setActivity(activity)
+                this.selectedActivity = activity;
+                this.loadingInitial = false
+                return activity
+            } catch (error) {
+                console.log(error)
+                this.loadingInitial = false
+            }
+        }
     }
 
-    openForm = (id?: string) => {
-        id ? this.selectActivity(id) : this.cancelActivity()
-        this.editMode = true;
-    }
-
-    closeForm = () => {
-        this.editMode = false
+    private getActivity = (id: string) => {
+        return this.activities.find(x => x.id === id);
     }
 
     createActivity = async (activity: Activity) => {
         this.loading = true;
-        activity.id = uuid();
         try {
             await agent.Activities.create(activity)
             runInAction(() => {
